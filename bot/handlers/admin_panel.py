@@ -7,7 +7,7 @@ from telegram.ext import ContextTypes
 from config import ADMIN_IDS, ADMIN_USERNAMES
 from storage.database import (
     get_all_users, get_user_data, update_user_data,
-    load_viewed_categories, get_db_path
+    load_viewed_categories
 )
 from categories import load_cached_categories
 
