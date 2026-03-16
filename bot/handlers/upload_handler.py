@@ -142,68 +142,64 @@ async def process_upload(update: Update, context):
         return UPLOAD_CATEGORIES
 
     try:
-        # Скачиваем файл
-        file = await context.bot.get_file(update.message.document.file_id)
-        file_bytes = await file.download_as_bytearray()
+    # Скачиваем файл
+    file = await context.bot.get_file(update.message.document.file_id)
+    file_bytes = await file.download_as_bytearray()
 
-        # Парсим категории (apply_exclusions=False - не применяем исключения для Excel)
-        selected_categories = parse_categories_from_excel(file_bytes, apply_exclusions=False)
+    # Парсим категории (apply_exclusions=False - не применяем исключения для Excel)
+    selected_categories = parse_categories_from_excel(file_bytes, apply_exclusions=False)
 
-        if selected_categories is None:
-            await status_msg.edit_text(
-                "❌ Ошибка обработки файла. Убедитесь, что файл содержит колонки 'Категория' и 'Путь' или 'Полный путь'"
-            )
-            return UPLOAD_CATEGORIES
+    if selected_categories is None:
+        await status_msg.edit_text(
+            "❌ Ошибка обработки файла. Убедитесь, что файл содержит колонки 'Категория' и 'Путь' или 'Полный путь'"
+        )
+        return UPLOAD_CATEGORIES
 
-        if not selected_categories:
-            await status_msg.edit_text(
-                "❌ Не найдено выбранных категорий. Укажите 'ДА' в колонке 'Выбрать'"
-            )
-            return UPLOAD_CATEGORIES
+    if not selected_categories:
+        await status_msg.edit_text(
+            "❌ Не найдено выбранных категорий. Укажите 'ДА' в колонке 'Выбрать'"
+        )
+        return UPLOAD_CATEGORIES
 
-        # Сохраняем категории пользователя
-        user_id = update.effective_user.id
-        save_user_categories(user_id, selected_categories)
+    # Сохраняем категории пользователя
+    user_id = update.effective_user.id
+    save_user_categories(user_id, selected_categories)
 
-        # Показываем предпросмотр
-        preview = "\n".join([f"• {cat['name']}" for cat in selected_categories[:10]])
-        if len(selected_categories) > 10:
-            preview += f"\n... и еще {len(selected_categories) - 10}"
+    # Показываем предпросмотр
+    preview = "\n".join([f"• {cat['name']}" for cat in selected_categories[:10]])
+    if len(selected_categories) > 10:
+        preview += f"\n... и еще {len(selected_categories) - 10}"
 
-        # Расчет примерного времени анализа
-        estimated_minutes = len(selected_categories) * 6 // 60  # 6 секунд на категорию
-        if estimated_minutes < 1:
-            time_msg = "менее 1 минуты"
-        else:
-            time_msg = f"около {estimated_minutes} минут"
+    # Расчет примерного времени анализа
+    estimated_minutes = len(selected_categories) * 6 // 60  # 6 секунд на категорию
+    if estimated_minutes < 1:
+        time_msg = "менее 1 минуты"
+    else:
+        time_msg = f"около {estimated_minutes} минут"
 
-      # Сохраняем категории в контекст для анализа
-user_id = update.effective_user.id
-context.user_data['all_categories'] = selected_categories
-context.user_data['selected'] = list(range(1, len(selected_categories) + 1))
-context.user_data['using_user_categories'] = True
+    # Сохраняем категории в контекст для анализа
+    user_id = update.effective_user.id
+    context.user_data['all_categories'] = selected_categories
+    context.user_data['selected'] = list(range(1, len(selected_categories) + 1))
+    context.user_data['using_user_categories'] = True
 
-# Показываем сообщение о начале работы (БЕЗ КНОПКИ)
-await status_msg.edit_text(
-    f"✅ **Категории загружены работаю!**\n\n"
-    f"📊 Выбрано категорий: {len(selected_categories)}\n\n"
-     f"⏱ Примерное время анализа: {time_msg}\n\n"
-    f"{preview}",
-    parse_mode='Markdown'
-)
+    # Показываем сообщение о начале работы (БЕЗ КНОПКИ)
+    await status_msg.edit_text(
+        f"✅ **Категории загружены работаю!**\n\n"
+        f"📊 Выбрано категорий: {len(selected_categories)}\n\n"
+        f"{preview}\n\n"
+        f"⏱ Примерное время анализа: {time_msg}",
+        parse_mode='Markdown'
+    )
 
-# Автоматически запускаем анализ
-from analysis import analyze_command
-from config import ADMIN_IDS, ADMIN_USERNAMES
-await analyze_command(update, context, ADMIN_IDS, ADMIN_USERNAMES)
-
-# Автоматически запускаем анализ
-from analysis import analyze_command
-from config import ADMIN_IDS, ADMIN_USERNAMES
-await analyze_command(update, context, ADMIN_IDS, ADMIN_USERNAMES)
-    except Exception as e:
-        await status_msg.edit_text(f"❌ Ошибка: {str(e)}")
-        traceback.print_exc()
+    # Автоматически запускаем анализ
+    from analysis import analyze_command
+    from config import ADMIN_IDS, ADMIN_USERNAMES
+    await analyze_command(update, context, ADMIN_IDS, ADMIN_USERNAMES)
+    
+except Exception as e:
+    await status_msg.edit_text(f"❌ Ошибка: {str(e)}")
+    traceback.print_exc()
 
     return ConversationHandler.END
 
