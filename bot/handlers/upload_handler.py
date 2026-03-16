@@ -183,7 +183,7 @@ async def process_upload(update: Update, context):
 
         # Показываем сообщение о начале работы (БЕЗ КНОПКИ)
         await status_msg.edit_text(
-            f"✅ **Категории загружены работаю!**\n\n"
+            f"✅ **Категории загружены, работаю!**\n\n"
             f"📊 Выбрано категорий: {len(selected_categories)}\n\n"
             f"{preview}\n\n"
             f"⏱ Примерное время анализа: {time_msg}",
