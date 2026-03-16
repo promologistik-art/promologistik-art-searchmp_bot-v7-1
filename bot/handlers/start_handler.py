@@ -307,7 +307,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await analyze_command(update, context, ADMIN_IDS, ADMIN_USERNAMES)
 
 
-async def after_analysis_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+aasync def after_analysis_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик кнопок после анализа"""
     query = update.callback_query
     await query.answer()
@@ -316,20 +316,68 @@ async def after_analysis_handler(update: Update, context: ContextTypes.DEFAULT_T
         # Очищаем данные
         context.user_data.clear()
         
-        # Отправляем сообщение
-        await query.edit_message_text("📤 Отправьте файл Excel с категориями:")
+        # Удаляем старое сообщение
+        await query.message.delete()
         
-        # Возвращаем состояние для ConversationHandler
-        from config import UPLOAD_CATEGORIES
-        return UPLOAD_CATEGORIES
+        # Создаем искусственное сообщение для /upload
+        from bot.handlers.upload_handler import upload_command
+        
+        # Создаем fake message с нужными атрибутами
+        class FakeMessage:
+            def __init__(self, chat, from_user):
+                self.chat = chat
+                self.from_user = from_user
+                self.message_id = query.message.message_id
+                self.date = query.message.date
+                self.text = "/upload"
+                self._bot = None
+                
+            async def reply_text(self, text, **kwargs):
+                return await query.message.reply_text(text, **kwargs)
+                
+            async def reply_document(self, **kwargs):
+                return await query.message.reply_document(**kwargs)
+        
+        # Создаем fake update
+        fake_update = Update(update.update_id)
+        fake_update.message = FakeMessage(query.message.chat, query.from_user)
+        fake_update.effective_user = query.from_user
+        fake_update.effective_chat = query.message.chat
+        
+        # Запускаем upload_command
+        await upload_command(fake_update, context)
 
     elif query.data == "after_start":
         # Очищаем данные
         context.user_data.clear()
         
-        # Отправляем сообщение с приветствием
+        # Удаляем старое сообщение
+        await query.message.delete()
+        
+        # Создаем искусственное сообщение для /start
         from bot.handlers.start_handler import start
-        await start(update, context)
+        
+        # Создаем fake message
+        class FakeMessage:
+            def __init__(self, chat, from_user):
+                self.chat = chat
+                self.from_user = from_user
+                self.message_id = query.message.message_id
+                self.date = query.message.date
+                self.text = "/start"
+                self._bot = None
+                
+            async def reply_text(self, text, **kwargs):
+                return await query.message.reply_text(text, **kwargs)
+        
+        # Создаем fake update
+        fake_update = Update(update.update_id)
+        fake_update.message = FakeMessage(query.message.chat, query.from_user)
+        fake_update.effective_user = query.from_user
+        fake_update.effective_chat = query.message.chat
+        
+        # Запускаем start
+        await start(fake_update, context)
 
 
 async def source_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
