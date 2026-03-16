@@ -177,23 +177,27 @@ async def process_upload(update: Update, context):
         else:
             time_msg = f"около {estimated_minutes} минут"
 
-        # Создаем клавиатуру с кнопкой для анализа
-        keyboard = [
-            [InlineKeyboardButton("🚀 Анализировать сейчас", callback_data="use_user_cats")],
-            [InlineKeyboardButton("📋 К списку категорий", callback_data="goto_list")],
-            [InlineKeyboardButton("🔄 Загрузить другой файл", callback_data="upload_again")]
-        ]
+        # Сохраняем категории в контекст для анализа
+user_id = update.effective_user.id
+context.user_data['all_categories'] = selected_categories
+context.user_data['selected'] = list(range(1, len(selected_categories) + 1))
+context.user_data['using_user_categories'] = True
 
-        await status_msg.edit_text(
-            f"✅ **Категории загружены!**\n\n"
-            f"📊 Выбрано категорий: {len(selected_categories)}\n\n"
-            f"{preview}\n\n"
-            f"⏱ Примерное время анализа: {time_msg}\n\n"
-            f"Нажмите **'🚀 Анализировать сейчас'** для запуска анализа.",
-            reply_markup=InlineKeyboardMarkup(keyboard),
-            parse_mode='Markdown'
-        )
+# Показываем сообщение о начале работы
+await status_msg.edit_text(
+    f"✅ **Категории загружены работаю!**\n\n"
+      f"📊 Выбрано категорий: {len(selected_categories)}\n\n"
+    f"{preview}\n\n"
+    f"⏱ Примерное время анализа: {time_msg}\n\n"
+    f"Нажмите **'🚀 Анализировать сейчас'** для запуска анализа.",
+    reply_markup=InlineKeyboardMarkup(keyboard),
+    parse_mode='Markdown'
+)
 
+# Автоматически запускаем анализ
+from analysis import analyze_command
+from config import ADMIN_IDS, ADMIN_USERNAMES
+await analyze_command(update, context, ADMIN_IDS, ADMIN_USERNAMES)
     except Exception as e:
         await status_msg.edit_text(f"❌ Ошибка: {str(e)}")
         traceback.print_exc()
