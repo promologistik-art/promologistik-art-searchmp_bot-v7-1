@@ -16,7 +16,7 @@ from telegram.ext import (
 )
 from bot.handlers.admin_panel import (
     admin_panel, admin_users_list, admin_stats, 
-    admin_export_csv, admin_user_info
+    admin_export_csv, admin_user_info_command
 )
 
 from config import (
@@ -128,7 +128,7 @@ def main():
     app.add_handler(CommandHandler("users", list_users))
     app.add_handler(CommandHandler("user", user_info))
     app.add_handler(CommandHandler("admin", admin_panel))
-    app.add_handler(CommandHandler("admin_user", admin_user_info))
+    app.add_handler(CommandHandler("admin_user", admin_user_info_command))
 
     # Добавьте в секцию CallbackQueryHandler:
     app.add_handler(CallbackQueryHandler(admin_users_list, pattern="^admin_users$"))
