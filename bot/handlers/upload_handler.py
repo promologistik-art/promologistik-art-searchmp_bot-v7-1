@@ -177,22 +177,25 @@ async def process_upload(update: Update, context):
         else:
             time_msg = f"около {estimated_minutes} минут"
 
-        # Сохраняем категории в контекст для анализа
+      # Сохраняем категории в контекст для анализа
 user_id = update.effective_user.id
 context.user_data['all_categories'] = selected_categories
 context.user_data['selected'] = list(range(1, len(selected_categories) + 1))
 context.user_data['using_user_categories'] = True
 
-# Показываем сообщение о начале работы
+# Показываем сообщение о начале работы (БЕЗ КНОПКИ)
 await status_msg.edit_text(
     f"✅ **Категории загружены работаю!**\n\n"
-      f"📊 Выбрано категорий: {len(selected_categories)}\n\n"
-    f"{preview}\n\n"
-    f"⏱ Примерное время анализа: {time_msg}\n\n"
-    f"Нажмите **'🚀 Анализировать сейчас'** для запуска анализа.",
-    reply_markup=InlineKeyboardMarkup(keyboard),
+    f"📊 Выбрано категорий: {len(selected_categories)}\n\n"
+     f"⏱ Примерное время анализа: {time_msg}\n\n"
+    f"{preview}",
     parse_mode='Markdown'
 )
+
+# Автоматически запускаем анализ
+from analysis import analyze_command
+from config import ADMIN_IDS, ADMIN_USERNAMES
+await analyze_command(update, context, ADMIN_IDS, ADMIN_USERNAMES)
 
 # Автоматически запускаем анализ
 from analysis import analyze_command
