@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-ФИНАЛ2502 - Бот для анализа товаров на Ozon
+Версия 160326 - Бот для анализа товаров на Ozon
 Главный файл запуска
 """
 
@@ -14,6 +14,9 @@ from telegram.ext import (
     Application, CommandHandler, CallbackQueryHandler,
     ConversationHandler, MessageHandler, filters
 )
+from bot.handlers.admin_panel import (
+    admin_panel, admin_users_list, admin_stats, 
+    admin_export_csv, admin_user_info
 
 from config import (
     BOT_TOKEN, ADMIN_IDS, ADMIN_USERNAMES,
@@ -123,6 +126,14 @@ def main():
     app.add_handler(CommandHandler("add_user", add_user_access))
     app.add_handler(CommandHandler("users", list_users))
     app.add_handler(CommandHandler("user", user_info))
+    app.add_handler(CommandHandler("admin", admin_panel))
+    app.add_handler(CommandHandler("admin_user", admin_user_info))
+
+    # Добавьте в секцию CallbackQueryHandler:
+    app.add_handler(CallbackQueryHandler(admin_users_list, pattern="^admin_users$"))
+    app.add_handler(CallbackQueryHandler(admin_stats, pattern="^admin_stats$"))
+    app.add_handler(CallbackQueryHandler(admin_export_csv, pattern="^admin_export$"))
+
 
     # Диалоги
     app.add_handler(crit_conv)
