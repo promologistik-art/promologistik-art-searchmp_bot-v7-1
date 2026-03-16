@@ -313,16 +313,21 @@ async def after_analysis_handler(update: Update, context: ContextTypes.DEFAULT_T
     await query.answer()
 
     if query.data == "after_upload":
-        # Очищаем выбранные категории
-        context.user_data['selected'] = []
-        # Запускаем команду /upload
-        from bot.handlers.upload_handler import upload_command
-        await upload_command(update, context)
+        # Очищаем данные
+        context.user_data.clear()
+        
+        # Отправляем сообщение
+        await query.edit_message_text("📤 Отправьте файл Excel с категориями:")
+        
+        # Возвращаем состояние для ConversationHandler
+        from config import UPLOAD_CATEGORIES
+        return UPLOAD_CATEGORIES
 
     elif query.data == "after_start":
-        # Очищаем данные пользователя
+        # Очищаем данные
         context.user_data.clear()
-        # Запускаем команду /start
+        
+        # Отправляем сообщение с приветствием
         from bot.handlers.start_handler import start
         await start(update, context)
 
