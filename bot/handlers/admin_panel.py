@@ -2,6 +2,7 @@ import io
 import csv
 from datetime import datetime, timedelta
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.error import Conflict
 from telegram.ext import ContextTypes
 
 from config import ADMIN_IDS, ADMIN_USERNAMES
@@ -97,56 +98,69 @@ async def admin_users_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
-    users = get_all_users()
-    
-    # Статистика
-    total = len(users)
-    admins = 0
-    subscribers = 0
-    free_users = 0
-    
-    for user_id, data in users.items():
-        if data.get('is_admin') or str(user_id) in [str(a) for a in ADMIN_IDS]:
-            admins += 1
-        if data.get('subscription_active') or data.get('custom_quota'):
-            subscribers += 1
-        else:
-            free_users += 1
-    
-    # Последние 10 активных пользователей
-    recent_users = sorted(
-        users.items(), 
-        key=lambda x: x[1].get('last_activity', ''), 
-        reverse=True
-    )[:10]
-    
-    text = (
-        f"👥 **Всего пользователей: {total}**\n"
-        f"👑 Админов: {admins}\n"
-        f"💰 С подпиской: {subscribers}\n"
-        f"🆓 Бесплатных: {free_users}\n\n"
-        "**Последние активные:**\n"
-    )
-    
-    for user_id, data in recent_users:
-        name = data.get('full_name', 'Без имени')
-        username = data.get('username', 'нет')
-        last_act = data.get('last_activity', 'никогда')
-        if isinstance(last_act, str) and len(last_act) > 10:
-            last_act = last_act[:10]
+    try:
+        users = get_all_users()
         
-        text += f"• {name} (@{username}) - ID: {user_id} - {last_act}\n"
-    
-    keyboard = [
-        [InlineKeyboardButton("📥 Экспорт в CSV", callback_data="admin_export")],
-        [InlineKeyboardButton("🔙 Назад", callback_data="admin_back")]
-    ]
-    
-    await query.edit_message_text(
-        text,
-        reply_markup=InlineKeyboardMarkup(keyboard),
-        parse_mode='Markdown'
-    )
+        # Статистика
+        total = len(users)
+        admins = 0
+        subscribers = 0
+        free_users = 0
+        
+        for user_id, data in users.items():
+            if data.get('is_admin') or str(user_id) in [str(a) for a in ADMIN_IDS]:
+                admins += 1
+            if data.get('subscription_active') or data.get('custom_quota'):
+                subscribers += 1
+            else:
+                free_users += 1
+        
+        # Последние 10 активных пользователей
+        recent_users = sorted(
+            users.items(), 
+            key=lambda x: x[1].get('last_activity', ''), 
+            reverse=True
+        )[:10]
+        
+        text = (
+            f"👥 **Всего пользователей: {total}**\n"
+            f"👑 Админов: {admins}\n"
+            f"💰 С подпиской: {subscribers}\n"
+            f"🆓 Бесплатных: {free_users}\n\n"
+            "**Последние активные:**\n"
+        )
+        
+        for user_id, data in recent_users:
+            name = data.get('full_name', 'Без имени')
+            username = data.get('username', 'нет')
+            last_act = data.get('last_activity', 'никогда')
+            if isinstance(last_act, str) and len(last_act) > 10:
+                last_act = last_act[:10]
+            
+            text += f"• {name} (@{username}) - ID: `{user_id}` - {last_act}\n"
+        
+        keyboard = [
+            [InlineKeyboardButton("📥 Экспорт в CSV", callback_data="admin_export")],
+            [InlineKeyboardButton("🔙 Назад", callback_data="admin_back")]
+        ]
+        
+        try:
+            await query.edit_message_text(
+                text,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode='Markdown'
+            )
+        except Conflict:
+            # Если конфликт - отправляем новое сообщение
+            await query.message.reply_text(
+                text,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode='Markdown'
+            )
+            
+    except Exception as e:
+        print(f"Ошибка в admin_users_list: {e}")
+        await query.message.reply_text("❌ Произошла ошибка. Попробуйте еще раз.")
 
 
 @admin_required
@@ -155,51 +169,62 @@ async def admin_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
-    users = get_all_users()
-    viewed = load_viewed_categories()
-    categories = load_cached_categories()
-    
-    # Подсчет запросов
-    total_queries = sum(u.get('total_queries', 0) for u in users.values())
-    today_queries = 0
-    week_queries = 0
-    
-    today = datetime.now().date()
-    week_ago = today - timedelta(days=7)
-    
-    # Здесь должна быть логика подсчета запросов за период
-    # Упрощенно:
-    active_today = 0
-    active_week = 0
-    
-    for user_id, data in users.items():
-        last_act = data.get('last_activity', '')
-        if isinstance(last_act, str):
-            try:
-                act_date = datetime.fromisoformat(last_act).date()
-                if act_date == today:
-                    active_today += 1
-                if act_date >= week_ago:
-                    active_week += 1
-            except:
-                pass
-    
-    text = (
-        "📊 **Общая статистика**\n\n"
-        f"👥 Пользователей: {len(users)}\n"
-        f"📊 Категорий в базе: {len(categories) if categories else 0}\n"
-        f"🟣 Просмотрено категорий: {len(viewed)}\n\n"
-        f"📈 **Запросы:**\n"
-        f"• Всего запросов: {total_queries}\n"
-        f"• Сегодня: {today_queries}\n"
-        f"• За неделю: {week_queries}\n\n"
-        f"🔥 **Активность:**\n"
-        f"• Сегодня: {active_today} пользователей\n"
-        f"• За неделю: {active_week} пользователей\n"
-    )
-    
-    keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="admin_back")]]
-    await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
+    try:
+        users = get_all_users()
+        viewed = load_viewed_categories()
+        categories = load_cached_categories()
+        
+        # Подсчет запросов
+        total_queries = sum(u.get('total_queries', 0) for u in users.values())
+        
+        today = datetime.now().date()
+        week_ago = today - timedelta(days=7)
+        
+        active_today = 0
+        active_week = 0
+        
+        for user_id, data in users.items():
+            last_act = data.get('last_activity', '')
+            if isinstance(last_act, str):
+                try:
+                    act_date = datetime.fromisoformat(last_act).date()
+                    if act_date == today:
+                        active_today += 1
+                    if act_date >= week_ago:
+                        active_week += 1
+                except:
+                    pass
+        
+        text = (
+            "📊 **Общая статистика**\n\n"
+            f"👥 Пользователей: {len(users)}\n"
+            f"📊 Категорий в базе: {len(categories) if categories else 0}\n"
+            f"🟣 Просмотрено категорий: {len(viewed)}\n\n"
+            f"📈 **Запросы:**\n"
+            f"• Всего запросов: {total_queries}\n\n"
+            f"🔥 **Активность:**\n"
+            f"• Сегодня: {active_today} пользователей\n"
+            f"• За неделю: {active_week} пользователей\n"
+        )
+        
+        keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="admin_back")]]
+        
+        try:
+            await query.edit_message_text(
+                text, 
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode='Markdown'
+            )
+        except Conflict:
+            await query.message.reply_text(
+                text,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode='Markdown'
+            )
+            
+    except Exception as e:
+        print(f"Ошибка в admin_stats: {e}")
+        await query.message.reply_text("❌ Произошла ошибка. Попробуйте еще раз.")
 
 
 @admin_required
@@ -208,39 +233,95 @@ async def admin_export_csv(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
-    users = get_all_users()
-    
-    output = io.StringIO()
-    writer = csv.writer(output)
-    
-    # Заголовки
-    writer.writerow(['ID', 'Username', 'Имя', 'Всего запросов', 
-                     'Бесплатных использовано', 'Подписка до', 'Админ', 'Последняя активность'])
-    
-    for user_id, data in users.items():
-        writer.writerow([
-            user_id,
-            data.get('username', ''),
-            data.get('full_name', ''),
-            data.get('total_queries', 0),
-            data.get('free_queries_used', 0),
-            data.get('subscription_until', ''),
-            'Да' if data.get('is_admin') else 'Нет',
-            data.get('last_activity', '')
-        ])
-    
-    output.seek(0)
-    
-    await query.message.reply_document(
-        document=io.BytesIO(output.getvalue().encode('utf-8-sig')),
-        filename=f"users_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-        caption="📊 Экспорт пользователей"
-    )
+    try:
+        users = get_all_users()
+        
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Заголовки
+        writer.writerow(['ID', 'Username', 'Имя', 'Всего запросов', 
+                         'Бесплатных использовано', 'Подписка до', 'Админ', 'Последняя активность'])
+        
+        for user_id, data in users.items():
+            writer.writerow([
+                user_id,
+                data.get('username', ''),
+                data.get('full_name', ''),
+                data.get('total_queries', 0),
+                data.get('free_queries_used', 0),
+                data.get('subscription_until', ''),
+                'Да' if data.get('is_admin') else 'Нет',
+                data.get('last_activity', '')
+            ])
+        
+        output.seek(0)
+        
+        await query.message.reply_document(
+            document=io.BytesIO(output.getvalue().encode('utf-8-sig')),
+            filename=f"users_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+            caption="📊 Экспорт пользователей"
+        )
+        
+        # Возвращаемся в меню пользователей
+        await admin_users_list(update, context)
+            
+    except Exception as e:
+        print(f"Ошибка в admin_export_csv: {e}")
+        await query.message.reply_text("❌ Ошибка при экспорте. Попробуйте еще раз.")
 
 
 @admin_required
-async def admin_user_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Информация о конкретном пользователе"""
+async def admin_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Возврат в главное меню админки"""
+    query = update.callback_query
+    await query.answer()
+    
+    try:
+        text = (
+            "👑 **Админ-панель**\n\n"
+            "Выберите раздел:"
+        )
+        
+        keyboard = [
+            [InlineKeyboardButton("👥 Пользователи", callback_data="admin_users")],
+            [InlineKeyboardButton("📊 Статистика", callback_data="admin_stats")],
+            [InlineKeyboardButton("🔄 Категории", callback_data="admin_cats")],
+            [InlineKeyboardButton("📢 Рассылка", callback_data="admin_broadcast_menu")],
+            [InlineKeyboardButton("⚙️ Система", callback_data="admin_system")]
+        ]
+        
+        try:
+            await query.edit_message_text(
+                text,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode='Markdown'
+            )
+        except Conflict:
+            await query.message.reply_text(
+                text,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode='Markdown'
+            )
+            
+    except Exception as e:
+        print(f"Ошибка в admin_back: {e}")
+        await query.message.reply_text("❌ Произошла ошибка. Возврат в меню.")
+
+
+async def admin_user_info_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Информация о конкретном пользователе (команда)"""
+    user = update.effective_user
+    
+    # Проверка прав
+    is_admin = (user.id in ADMIN_IDS or 
+               user.username in ADMIN_USERNAMES or 
+               get_user_data(user.id).get('is_admin', False))
+    
+    if not is_admin:
+        await update.message.reply_text("❌ У вас нет прав администратора.")
+        return
+    
     if not context.args:
         await update.message.reply_text("Использование: /admin_user <ID пользователя>")
         return
@@ -273,4 +354,3 @@ async def admin_user_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     
     await update.message.reply_text(text, parse_mode='Markdown')
-
