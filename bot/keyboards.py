@@ -40,8 +40,10 @@ def get_source_selection_keyboard():
 
 def get_after_analysis_keyboard():
     keyboard = [
-        [InlineKeyboardButton("📋 К списку категорий", callback_data="after_list")],
-        [InlineKeyboardButton("✅ Завершить", callback_data="after_end")]
+        [InlineKeyboardButton("📤 Анализировать еще", callback_data="after_upload")],
+        [InlineKeyboardButton("✅ Завершить", callback_data="after_start")]
+    ]
+    return InlineKeyboardMarkup(keyboard)
     ]
     return InlineKeyboardMarkup(keyboard)
 
