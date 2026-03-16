@@ -268,7 +268,16 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     data = query.data
+    print(f"button_handler получил: {data}")  # ОТЛАДКА
 
+    # ПЕРЕНАПРАВЛЯЕМ КНОПКИ ПОСЛЕ АНАЛИЗА
+    if data.startswith('after_'):
+        # Перенаправляем в after_analysis_handler
+        from bot.handlers.start_handler import after_analysis_handler
+        await after_analysis_handler(update, context)
+        return
+
+    # ДАЛЬШЕ ИДЕТ ОБЫЧНАЯ ЛОГИКА (уже без повторного определения data)
     if data.startswith('page_'):
         page = int(data.replace('page_', ''))
         await show_categories_page(update, context, page)
