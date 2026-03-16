@@ -315,7 +315,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         from config import ADMIN_IDS, ADMIN_USERNAMES
         await analyze_command(update, context, ADMIN_IDS, ADMIN_USERNAMES)
 
-
 async def after_analysis_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик кнопок после анализа"""
     query = update.callback_query
@@ -337,18 +336,36 @@ async def after_analysis_handler(update: Update, context: ContextTypes.DEFAULT_T
             # Удаляем сообщение с кнопками
             await query.message.delete()
 
-            # Запускаем upload_command
+            # Отправляем сообщение о начале загрузки
+            await query.message.reply_text("📤 **Подготавливаю загрузку файла...**")
+
+            # Вместо создания fake_update - вызываем команду через бота
             from bot.handlers.upload_handler import upload_command
 
-            # Создаём искусственное сообщение
-            class FakeMessage:
-                def __init__(self, chat, from_user):
-                    self.chat = chat
+            # Создаем новый update с правильным message
+            from telegram._utils.default import Default
+            from telegram.ext import CallbackContext
+
+            # Получаем chat_id и user_id
+            chat_id = query.message.chat_id
+            user_id = query.from_user.id
+
+            # Отправляем команду через бота (альтернативный способ)
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text="/upload"
+            )
+
+            # Запускаем upload_command напрямую
+            # Создаем минимальный объект message
+            class SimpleMessage:
+                def __init__(self, chat_id, from_user, message_id):
+                    self.chat_id = chat_id
+                    self.chat = type('Chat', (), {'id': chat_id})()
                     self.from_user = from_user
-                    self.message_id = 999999
-                    self.date = query.message.date
+                    self.message_id = message_id
                     self.text = "/upload"
-                    self._bot = None
+                    self.date = query.message.date
 
                 async def reply_text(self, text, **kwargs):
                     return await query.message.reply_text(text, **kwargs)
@@ -356,15 +373,15 @@ async def after_analysis_handler(update: Update, context: ContextTypes.DEFAULT_T
                 async def reply_document(self, **kwargs):
                     return await query.message.reply_document(**kwargs)
 
-            fake_update = Update(update.update_id + 1)
-            fake_update.message = FakeMessage(query.message.chat, query.from_user)
-            fake_update.effective_user = query.from_user
-            fake_update.effective_chat = query.message.chat
+            # Создаем простой словарь вместо Update
+            fake_update = type('FakeUpdate', (), {
+                'message': SimpleMessage(chat_id, query.from_user, 999999),
+                'effective_user': query.from_user,
+                'effective_chat': type('Chat', (), {'id': chat_id})(),
+                'callback_query': None
+            })()
 
-            print("🟢 after_upload: вызываю upload_command")
             await upload_command(fake_update, context)
-
-            print("🟢 after_upload: возвращаю UPLOAD_CATEGORIES")
             return UPLOAD_CATEGORIES
 
         elif query.data == "after_start":
@@ -376,27 +393,36 @@ async def after_analysis_handler(update: Update, context: ContextTypes.DEFAULT_T
             # Удаляем сообщение с кнопками
             await query.message.delete()
 
+            # Отправляем сообщение о возврате
+            await query.message.reply_text("🔄 **Возвращаюсь в начало...**")
+
             # Запускаем start
             from bot.handlers.start_handler import start
 
-            class FakeMessage:
-                def __init__(self, chat, from_user):
-                    self.chat = chat
+            chat_id = query.message.chat_id
+            user_id = query.from_user.id
+
+            # Создаем простой объект message
+            class SimpleMessage:
+                def __init__(self, chat_id, from_user, message_id):
+                    self.chat_id = chat_id
+                    self.chat = type('Chat', (), {'id': chat_id})()
                     self.from_user = from_user
-                    self.message_id = 999999
-                    self.date = query.message.date
+                    self.message_id = message_id
                     self.text = "/start"
-                    self._bot = None
+                    self.date = query.message.date
 
                 async def reply_text(self, text, **kwargs):
                     return await query.message.reply_text(text, **kwargs)
 
-            fake_update = Update(update.update_id + 1)
-            fake_update.message = FakeMessage(query.message.chat, query.from_user)
-            fake_update.effective_user = query.from_user
-            fake_update.effective_chat = query.message.chat
+            # Создаем fake update
+            fake_update = type('FakeUpdate', (), {
+                'message': SimpleMessage(chat_id, query.from_user, 999999),
+                'effective_user': query.from_user,
+                'effective_chat': type('Chat', (), {'id': chat_id})(),
+                'callback_query': None
+            })()
 
-            print("🟢 after_start: вызываю start")
             await start(fake_update, context)
             print("🟢 after_start: завершено")
 
