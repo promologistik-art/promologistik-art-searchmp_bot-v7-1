@@ -15,8 +15,12 @@ from telegram.ext import (
     ConversationHandler, MessageHandler, filters
 )
 from bot.handlers.admin_panel import (
-    admin_panel, admin_users_list, admin_stats, 
-    admin_export_csv, admin_user_info_command
+    admin_panel, 
+    admin_users_list, 
+    admin_stats, 
+    admin_export_csv, 
+    admin_back, 
+    admin_user_info_command
 )
 
 from config import (
@@ -123,12 +127,31 @@ def main():
     app.add_handler(CommandHandler("list", list_command))
     app.add_handler(CommandHandler("analyze", lambda u, c: analyze_command(u, c, ADMIN_IDS, ADMIN_USERNAMES)))
 
-    # Админ-команды
+    # Админ-команды (уже существующие)
     app.add_handler(CommandHandler("add_user", add_user_access))
     app.add_handler(CommandHandler("users", list_users))
     app.add_handler(CommandHandler("user", user_info))
+
+    # НОВЫЕ админ-команды (исправлено)
     app.add_handler(CommandHandler("admin", admin_panel))
-    app.add_handler(CommandHandler("admin_user", admin_user_info_command))
+    app.add_handler(CommandHandler("admin_user", admin_user_info_command))  # правильное имя функции
+
+    # Диалоги
+    app.add_handler(crit_conv)
+    app.add_handler(upload_conv)
+
+    # Обработчики кнопок (основные)
+    app.add_handler(CallbackQueryHandler(button_handler, pattern="^(page_|jump_|sel_|do_)"))
+    app.add_handler(CallbackQueryHandler(after_analysis_handler, pattern="^after_"))
+    app.add_handler(CallbackQueryHandler(source_handler, pattern="^src_"))
+    app.add_handler(CallbackQueryHandler(switch_source_handler, pattern="^switch_"))
+    app.add_handler(CallbackQueryHandler(upload_button_handler, pattern="^(use_user_cats|goto_list|upload_again)$"))
+
+    # НОВЫЕ обработчики кнопок для админ-панели (только ОДИН раз!)
+    app.add_handler(CallbackQueryHandler(admin_users_list, pattern="^admin_users$"))
+    app.add_handler(CallbackQueryHandler(admin_stats, pattern="^admin_stats$"))
+    app.add_handler(CallbackQueryHandler(admin_export_csv, pattern="^admin_export$"))
+    app.add_handler(CallbackQueryHandler(admin_back, pattern="^admin_back$"))
 
     # Добавьте в секцию CallbackQueryHandler:
     app.add_handler(CallbackQueryHandler(admin_users_list, pattern="^admin_users$"))
