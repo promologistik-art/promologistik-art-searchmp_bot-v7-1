@@ -312,17 +312,19 @@ async def after_analysis_handler(update: Update, context: ContextTypes.DEFAULT_T
     query = update.callback_query
     await query.answer()
 
-    if query.data == "after_list":
-        await query.edit_message_text("📋 Перехожу к списку...")
+    if query.data == "after_upload":
+        # Очищаем выбранные категории
         context.user_data['selected'] = []
-        await list_command(update, context)
+        # Запускаем команду /upload
+        from bot.handlers.upload_handler import upload_command
+        await upload_command(update, context)
 
-    elif query.data == "after_end":
-        await query.edit_message_text(
-            "✅ Хорошо! Для продолжения:\n"
-            "📋 /list - выбрать категории\n"
-            "🔧 /criteria - изменить настройки"
-        )
+    elif query.data == "after_start":
+        # Очищаем данные пользователя
+        context.user_data.clear()
+        # Запускаем команду /start
+        from bot.handlers.start_handler import start
+        await start(update, context)
 
 
 async def source_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
