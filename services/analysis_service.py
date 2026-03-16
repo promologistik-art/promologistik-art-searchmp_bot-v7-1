@@ -315,7 +315,6 @@ async def analyze_command(update, context, admin_ids, admin_usernames):
             f"✅ **Анализ завершен!**\n\n"
             f"{status_info}\n"
             f"⏱ Общее время: {int(total_time // 60)} мин {int(total_time % 60)} сек\n\n"
-            f"📊 **Категории:** {', '.join(map(str, sorted(selected)))}\n"
             f"📈 **Критерии:**\n"
             f"• Выручка > {criteria['min_revenue']:,} руб\n"
             f"• Цена ≤ {criteria['max_price']} руб\n"
