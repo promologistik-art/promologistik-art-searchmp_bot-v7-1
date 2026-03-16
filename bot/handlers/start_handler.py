@@ -307,7 +307,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await analyze_command(update, context, ADMIN_IDS, ADMIN_USERNAMES)
 
 
-aasync def after_analysis_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def after_analysis_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик кнопок после анализа"""
     query = update.callback_query
     await query.answer()
