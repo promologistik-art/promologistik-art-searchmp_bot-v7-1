@@ -44,9 +44,7 @@ def get_after_analysis_keyboard():
         [InlineKeyboardButton("✅ Завершить", callback_data="after_start")]
     ]
     return InlineKeyboardMarkup(keyboard)
-    ]
-    return InlineKeyboardMarkup(keyboard)
-
+   
 
 def get_end_keyboard():
     keyboard = [[InlineKeyboardButton("✅ Завершить", callback_data="after_end")]]
