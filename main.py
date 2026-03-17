@@ -21,6 +21,7 @@ from bot.handlers.admin_panel import (
     admin_export_csv, 
     admin_back, 
     admin_user_info_command
+from bot.menu import set_bot_commands, update_admin_commands, remove_admin_commands
 )
 
 from config import (
@@ -76,6 +77,15 @@ def main():
     )
     app = Application.builder().token(BOT_TOKEN).request(request).build()
 
+    # Функция для установки команд
+    async def setup_commands():
+        await set_bot_commands(app)
+    
+    # Запускаем установку команд в фоне
+    import asyncio
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.create_task(setup_commands())
     async def error_handler(update, context):
         err = context.error
         logger.exception("Unhandled error", exc_info=err)
