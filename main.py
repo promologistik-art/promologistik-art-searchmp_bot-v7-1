@@ -21,7 +21,7 @@ from bot.handlers.admin_panel import (
     admin_export_csv, 
     admin_back, 
     admin_user_info_command
-from bot.menu import set_bot_commands, update_admin_commands, remove_admin_commands
+
 )
 
 from config import (
