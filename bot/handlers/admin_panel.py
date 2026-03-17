@@ -94,7 +94,13 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode='Markdown'
     )
-
+async def make_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Сделать пользователя админом"""
+    # ... ваш код ...
+    
+    # После назначения админа обновляем команды
+    from bot.menu import update_admin_commands
+    await update_admin_commands(context.application, user_id)
 
 @admin_required
 async def admin_users_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
